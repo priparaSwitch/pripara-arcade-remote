@@ -1,0 +1,9 @@
+* text=auto eol=lf
+# Preserve the existing C# source and the exact dataset bytes.
+src/** -text
+assets/** -text
+*.db binary
+*.bin binary
+*.ico binary
+*.zip binary
+*.exe binary

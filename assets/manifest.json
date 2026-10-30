@@ -1,0 +1,23 @@
+{
+  "schemaVersion": 1,
+  "dataSchemaVersion": 1,
+  "dataVersion": "arcade-171d21054459-b0b726b1-thumb128-c256-adaptive",
+  "items": 6229,
+  "sets": 823,
+  "images": 5783,
+  "imageMaxSide": 128,
+  "files": [
+    {
+      "path": "assets/data.db",
+      "size": 2760704,
+      "sha256": "058441bc91ced5717c60f09994d75b39d0fef7192f0c728147cb8dec643688d9",
+      "optional": false
+    },
+    {
+      "path": "assets/images.bin",
+      "size": 24855484,
+      "sha256": "4d48d63b320b4be09b09c4c6f78783832b2d95f2ef4bb6d262c3cd91d6a172ba",
+      "optional": true
+    }
+  ]
+}

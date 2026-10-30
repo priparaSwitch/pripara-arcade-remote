@@ -1,0 +1,11 @@
+{
+  "version": 1,
+  "items": [
+    {"id":7106,"name":"트윙클리본 사이리움 원피스","jpName":"トゥインクルリボンサイリウムワンピ","brand":1,"brandName":"트윙클리본","category":"top","model":"1501_D01","isDress":true,"sourceRow":1760,"thumbnail":false,"search":"트윙클리본 twinkle 7106 1501_D01","nameSource":"example metadata"},
+    {"id":7307,"name":"트윙클리본 사이리움 슈즈","jpName":"トゥインクルリボンサイリウムシューズ","brand":1,"brandName":"트윙클리본","category":"shoes","model":"1501_P01","isDress":false,"sourceRow":1790,"thumbnail":false,"search":"트윙클리본 twinkle 7307 1501_P01","nameSource":"example metadata"},
+    {"id":7412,"name":"트윙클리본 사이리움 헤어액세서리","jpName":"トゥインクルリボンサイリウムヘアアクセ","brand":1,"brandName":"트윙클리본","category":"head","model":"1501_IA1","isDress":false,"sourceRow":1819,"thumbnail":false,"search":"트윙클리본 twinkle 7412 1501_IA1","nameSource":"example metadata"}
+  ],
+  "sets": [
+    {"id":"example-twinkle","name":"트윙클리본 예제 세트","brand":1,"brandName":"트윙클리본","search":"트윙클리본 twinkle example","pieces":{"top":7106,"bottom":0,"shoes":7307,"head":7412}}
+  ]
+}

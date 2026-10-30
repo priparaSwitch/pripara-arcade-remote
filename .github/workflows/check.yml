@@ -1,0 +1,24 @@
+name: Build and offline checks
+
+on:
+  pull_request:
+  push:
+    branches: ['**']
+
+permissions:
+  contents: read
+
+jobs:
+  windows:
+    runs-on: windows-latest
+    defaults:
+      run:
+        shell: powershell
+    steps:
+      - uses: actions/checkout@v6
+      - name: Check unchanged source and bundled data
+        run: .\scripts\Verify-Repository.ps1
+      - name: Build with the Windows Framework compiler
+        run: .\build.ps1
+      - name: Offline tests only
+        run: .\scripts\Test-Offline.ps1

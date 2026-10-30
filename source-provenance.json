@@ -1,0 +1,38 @@
+{
+  "schemaVersion": 1,
+  "project": "pripara-arcade-remote",
+  "applicationVersion": "1.1.2.0",
+  "basis": "Version 1.1.2 adds window/header version labels and an all-individual-items tab. GameBridge, Catalog, data schema and bundled assets are unchanged from 1.1.1. Offline UI and fixture validation only; no new live game test.",
+  "sourceFiles": [
+    {
+      "path": "src/Program.cs",
+      "size": 26712,
+      "sha256": "830bd0ff44911938e06040401189eb96d690de28fec4bc562f3f492b14978d24"
+    },
+    {
+      "path": "src/Catalog.cs",
+      "size": 18751,
+      "sha256": "e51ce49b6930b9b3ea106cd97ae9c33cc7eb965b7e76c3aca7847f86511bc760"
+    },
+    {
+      "path": "src/GameBridge.cs",
+      "size": 11798,
+      "sha256": "c561d12b8a46ad93390e65c71f23bc2fc523c08e2075b4c99bd2c454ea229c3a"
+    },
+    {
+      "path": "src/SelfTests.cs",
+      "size": 7995,
+      "sha256": "84cf1bcad9af144f4d2c6c1db29d9aba869eb2cc76fdb6f592dd73bafdb76acb"
+    },
+    {
+      "path": "src/app.manifest",
+      "size": 989,
+      "sha256": "1e536347bf98061b14b00d40ff0ee22f0cbe7afaa39ed73e61448501abdb6f5a"
+    },
+    {
+      "path": "src/app.ico",
+      "size": 17053,
+      "sha256": "518b3e46abfcace026cbc6275c19cd990ad987b8a92641250434b5fdcb4737fd"
+    }
+  ]
+}
