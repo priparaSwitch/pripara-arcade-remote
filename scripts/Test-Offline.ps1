@@ -21,7 +21,7 @@ foreach ($kind in @('full','light')) {
  & $runner self-test $exe $folder $selfReport
  if ($LASTEXITCODE -ne 0) { throw ('Offline self-test failed: '+$kind) }
  $self = Get-Content -LiteralPath $selfReport -Raw -Encoding UTF8 | ConvertFrom-Json
- if (-not $self.passed -or $self.count -ne 15) { throw ('Unexpected self-test result: '+$kind) }
+ if (-not $self.passed -or $self.count -ne 16) { throw ('Unexpected self-test result: '+$kind) }
  $catalogReport = Join-Path $folder 'catalog.json'
  & $runner catalog $exe $folder $catalogReport
  if ($LASTEXITCODE -ne 0) { throw ('Catalog audit failed: '+$kind) }

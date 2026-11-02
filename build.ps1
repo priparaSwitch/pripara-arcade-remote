@@ -27,7 +27,7 @@ $argsList = @('/nologo','/target:winexe','/platform:x64','/optimize+','/codepage
  ('/out:'+$exe),('/win32manifest:'+(Join-Path $root 'src\app.manifest')),('/win32icon:'+$icon),('/resource:'+$icon+',app.ico'),
  '/r:System.dll','/r:System.Core.dll','/r:System.Drawing.dll','/r:System.Windows.Forms.dll',
  '/r:System.Web.Extensions.dll','/r:System.IO.Compression.dll')
-foreach ($name in @('Program.cs','Catalog.cs','GameBridge.cs','SelfTests.cs')) { $argsList += Join-Path $root ('src\'+$name) }
+foreach ($name in @('Program.cs','Catalog.cs','Favorites.cs','GameBridge.cs','SelfTests.cs')) { $argsList += Join-Path $root ('src\'+$name) }
 & $compiler @argsList
 if ($LASTEXITCODE -ne 0) { throw 'C# compilation failed.' }
 if (-not $CodeOnly) {
@@ -35,5 +35,5 @@ if (-not $CodeOnly) {
  $image = Join-Path $data 'images.bin'
  if (-not $WithoutImages -and (Test-Path -LiteralPath $image -PathType Leaf)) { Copy-Item -LiteralPath $image -Destination (Join-Path $output 'images.bin') -Force }
 }
-$summary = [ordered]@{ executable=$exe; bytes=(Get-Item -LiteralPath $exe).Length; sha256=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant(); target='x64 .NET Framework'; sdkRequired=$false; sourceVersion='1.1.2.0'; dataEmbedded=$false }
+$summary = [ordered]@{ executable=$exe; bytes=(Get-Item -LiteralPath $exe).Length; sha256=(Get-FileHash -LiteralPath $exe -Algorithm SHA256).Hash.ToLowerInvariant(); target='x64 .NET Framework'; sdkRequired=$false; sourceVersion='1.1.3.0'; dataEmbedded=$false }
 $summary | ConvertTo-Json

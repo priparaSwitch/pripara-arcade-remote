@@ -238,7 +238,7 @@ def build_images(source,dest,entries,compression,*,max_side=None,colors=None,qua
                 never_upscaled=True,aspect_ratio_preserved=True,
                 compression=compression,format='ZIP archive of ID.png files; .bin extension; PNG processing is declared in pipeline')
 
-def create_database(path,items,sets,meta):
+def create_database(path,items,sets,meta,item_meta=()):
     con=sqlite3.connect(path)
     try:
         con.execute('PRAGMA foreign_keys=ON')
@@ -257,6 +257,7 @@ def create_database(path,items,sets,meta):
           brandName TEXT NOT NULL,search TEXT NOT NULL,
           top INTEGER NOT NULL CHECK(top>=0),bottom INTEGER NOT NULL CHECK(bottom>=0),
           shoes INTEGER NOT NULL CHECK(shoes>=0),head INTEGER NOT NULL CHECK(head>=0));
+        CREATE TABLE item_meta(id INTEGER PRIMARY KEY,grade INTEGER NOT NULL CHECK(grade>=0),hidden INTEGER NOT NULL CHECK(hidden IN(0,1)));
         CREATE INDEX items_category_brand_name ON items(category,brand,name COLLATE NOCASE);
         CREATE INDEX items_brand_category ON items(brand,category);
         CREATE INDEX items_model ON items(model);
@@ -280,10 +281,11 @@ def create_database(path,items,sets,meta):
             con.executemany('INSERT INTO meta(key,value) VALUES(?,?)',sorted(meta.items()))
             con.executemany('INSERT INTO items('+','.join(ITEM_FIELDS)+') VALUES('+','.join('?'for _ in ITEM_FIELDS)+')',items)
             con.executemany('INSERT INTO sets('+','.join(SET_FIELDS)+') VALUES('+','.join('?'for _ in SET_FIELDS)+')',sets)
+            con.executemany('INSERT INTO item_meta(id,grade,hidden) VALUES(?,?,?)',item_meta)
         con.execute('VACUUM')
     finally:con.close()
 
-def verify_database(path,catalog,items,sets):
+def verify_database(path,catalog,items,sets,item_meta=()):
     con=sqlite3.connect(Path(path).resolve().as_uri()+'?mode=ro',uri=True)
     try:
         con.execute('PRAGMA query_only=ON')
@@ -294,6 +296,7 @@ def verify_database(path,catalog,items,sets):
         if list(con.execute('PRAGMA foreign_key_check')):raise ValueError('SQLite foreign_key_check failed')
         actual_items={r[0]:r for r in con.execute('SELECT '+','.join(ITEM_FIELDS)+' FROM items')}
         actual_sets={r[0]:r for r in con.execute('SELECT '+','.join(SET_FIELDS)+' FROM sets')}
+        if list(con.execute('SELECT id,grade,hidden FROM item_meta ORDER BY id'))!=sorted(item_meta):raise ValueError('item display metadata mismatch')
         if len(actual_items)!=len(items)or any(actual_items.get(r[0])!=r for r in items):raise ValueError('item field roundtrip mismatch')
         if len(actual_sets)!=len(sets)or any(actual_sets.get(r[0])!=r for r in sets):raise ValueError('set field roundtrip mismatch')
         for slot in SLOTS:
@@ -328,7 +331,7 @@ def verify_database(path,catalog,items,sets):
                     indexes=[r[0]for r in con.execute("SELECT name FROM sqlite_master WHERE type='index' AND name NOT LIKE 'sqlite_%' ORDER BY name")])
     finally:con.close()
 
-def export_split(catalog_path,thumbs_path,out_dir,*,data_version=None,compression='deflate',overwrite=False,image_max_side=128,image_colors=256,image_quantizer='adaptive'):
+def export_split(catalog_path,thumbs_path,out_dir,*,data_version=None,compression='deflate',overwrite=False,image_max_side=128,image_colors=256,image_quantizer='adaptive',set_representatives=None):
     start=time.perf_counter();catalog_path=Path(catalog_path).resolve();out_dir=Path(out_dir).resolve()
     thumbs_path=Path(thumbs_path).resolve()if thumbs_path else None
     outputs=[out_dir/DATABASE_FILE]+([out_dir/IMAGES_FILE]if thumbs_path else[])
@@ -337,6 +340,13 @@ def export_split(catalog_path,thumbs_path,out_dir,*,data_version=None,compressio
         if target.exists()and not overwrite:raise FileExistsError(f'{target} exists; use --overwrite for an intentional data update')
     original_hashes={str(p):sha256(p)for p in (catalog_path,thumbs_path)if p}
     catalog,items,sets,item_extras,set_extras=read_catalog(catalog_path)
+    if set_representatives is None:set_representatives=Path(__file__).resolve().parent.parent/'assets/set_representative_ids.json'
+    hidden=set(json.loads(Path(set_representatives).read_text(encoding='utf8'))['ids'])if Path(set_representatives).exists()else set()
+    item_meta=[]
+    for row in catalog['items']:
+        grade=row.get('grade',0)
+        if not isinstance(grade,int)or isinstance(grade,bool)or grade<0:raise ValueError(f'invalid grade for item {row["id"]}')
+        if grade or row['id']in hidden:item_meta.append((row['id'],grade,int(row['id']in hidden)))
     ids={r[0]for r in items};declared={r[0]for r in items if r[9]}
     entries=inspect_images(thumbs_path,ids,declared)if thumbs_path else[]
     catalog_sha=original_hashes[str(catalog_path)]
@@ -361,7 +371,7 @@ def export_split(catalog_path,thumbs_path,out_dir,*,data_version=None,compressio
     with tempfile.TemporaryDirectory(prefix='.split-export-',dir=out_dir)as temporary:
         staging=Path(temporary);db=staging/DATABASE_FILE;images=staging/IMAGES_FILE
         image_result=build_images(thumbs_path,images,entries,compression,max_side=image_max_side,colors=image_colors,quantizer=image_quantizer)if thumbs_path else dict(count=0,optional_images_omitted=True)
-        create_database(db,items,sets,meta);db_result=verify_database(db,catalog,items,sets)
+        create_database(db,items,sets,meta,item_meta);db_result=verify_database(db,catalog,items,sets,item_meta)
         if any(sha256(p)!=h for p,h in original_hashes.items()):raise ValueError('input changed during export')
         report=dict(passed=True,schema_version=SCHEMA_VERSION,application_id=f'0x{APPLICATION_ID:08X}',
                     data_version=str(data_version),source=dict(catalog=str(catalog_path),images=str(thumbs_path)if thumbs_path else None,sha256=original_hashes),
@@ -388,6 +398,7 @@ def main(argv=None):
     parser.add_argument('--image-colors',type=int,default=256,help='Opaque PNG palette colors1..256;0 keeps RGBA. Transparent images retain RGBA')
     parser.add_argument('--image-quantizer',choices=('adaptive','fast','median'),default='adaptive',help='Adaptive preserves pale details with MEDIANCUT when FASTOCTREE collapses them into white')
     parser.add_argument('--original-images',action='store_true',help='Copy exact original PNG bytes; ignores image size/color switches and requires no Pillow')
+    parser.add_argument('--set-representatives',type=Path,help='Optional audited representative ID JSON; defaults to the bundled nonprivate ID list')
     parser.add_argument('--overwrite',action='store_true',help='Intentionally replace this tool\'s existing output companions')
     args=parser.parse_args(argv)
     if not args.without_images and args.thumbs is None:
@@ -396,7 +407,7 @@ def main(argv=None):
                         data_version=args.data_version,compression=args.compression,overwrite=args.overwrite,
                         image_max_side=None if args.original_images or args.image_max_side==0 else args.image_max_side,
                         image_colors=None if args.original_images or args.image_colors==0 else args.image_colors,
-                        image_quantizer=args.image_quantizer)
+                        image_quantizer=args.image_quantizer,set_representatives=args.set_representatives)
     print(json.dumps(dict(passed=report['passed'],counts=report['counts'],output=report['output'],elapsed_seconds=report['elapsed_seconds']),ensure_ascii=False))
     return 0
 

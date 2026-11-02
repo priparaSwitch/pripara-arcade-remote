@@ -24,7 +24,7 @@ public static class OfflineRunner {
    }
    Assembly assembly=Assembly.LoadFrom(exe);string[] resources=assembly.GetManifestResourceNames();
    Require(resources.Length==1&&resources[0]=="app.ico","Catalog/images must not be embedded");
-   Require(assembly.GetName().Version.ToString()=="1.1.2.0","Unexpected source version");
+   Require(assembly.GetName().Version.ToString()=="1.1.3.0","Unexpected source version");
    Type type=assembly.GetType("PriParaCoordRemote.Catalog",true);object catalog=Activator.CreateInstance(type,new object[]{folder});
    int items=0,sets=0,declared=0,decoded=0;bool images=false;
    try{

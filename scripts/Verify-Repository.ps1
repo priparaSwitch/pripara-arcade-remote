@@ -1,4 +1,4 @@
-﻿param([switch]$SkipAssetHashes)
+param([switch]$SkipAssetHashes)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
 $provenance = Get-Content -LiteralPath (Join-Path $root 'source-provenance.json') -Raw -Encoding UTF8 | ConvertFrom-Json
@@ -11,7 +11,7 @@ foreach ($entry in @($provenance.sourceFiles)+$(if ($SkipAssetHashes) { @() } el
  if ($item.Length -ne $entry.size -or (Get-FileHash -LiteralPath $path -Algorithm SHA256).Hash.ToLowerInvariant() -ne $entry.sha256) { throw ('Bundled input changed: '+$entry.path) }
  $checked += $entry.path
 }
-if ($provenance.applicationVersion -ne '1.1.2.0' -or $assets.dataSchemaVersion -ne 1) { throw 'Version metadata mismatch.' }
+if ($provenance.applicationVersion -ne '1.1.3.0' -or $assets.dataSchemaVersion -ne 1) { throw 'Version metadata mismatch.' }
 $bridge = $provenance.sourceFiles | Where-Object { $_.path -eq 'src/GameBridge.cs' }
 if ($bridge.sha256 -ne 'c561d12b8a46ad93390e65c71f23bc2fc523c08e2075b4c99bd2c454ea229c3a') { throw 'Original game-transfer source changed.' }
 $program = Get-Content -LiteralPath (Join-Path $root 'src\Program.cs') -Raw -Encoding UTF8

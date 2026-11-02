@@ -1,18 +1,18 @@
 {
   "schemaVersion": 1,
   "project": "pripara-arcade-remote",
-  "applicationVersion": "1.1.2.0",
-  "basis": "Version 1.1.2 adds window/header version labels and an all-individual-items tab. GameBridge, Catalog, data schema and bundled assets are unchanged from 1.1.1. Offline UI and fixture validation only; no new live game test.",
+  "applicationVersion": "1.1.3.0",
+  "basis": "Version 1.1.3 adds persistent favorites, sorting controls and data-driven hiding of audited set representatives. Original game-transfer code is unchanged. Offline UI and fixture validation only; no new live game test.",
   "sourceFiles": [
     {
       "path": "src/Program.cs",
-      "size": 26712,
-      "sha256": "830bd0ff44911938e06040401189eb96d690de28fec4bc562f3f492b14978d24"
+      "size": 30629,
+      "sha256": "21dae18b5a4a5134d18c2c9a165424390c1d78aecaf4f19697849866c9c2c2dc"
     },
     {
       "path": "src/Catalog.cs",
-      "size": 18751,
-      "sha256": "e51ce49b6930b9b3ea106cd97ae9c33cc7eb965b7e76c3aca7847f86511bc760"
+      "size": 19416,
+      "sha256": "fe3c1d9b42c1d92d83f45f9467a882d9c9e549a97de44e5e60e491315e960cc1"
     },
     {
       "path": "src/GameBridge.cs",
@@ -21,8 +21,8 @@
     },
     {
       "path": "src/SelfTests.cs",
-      "size": 7995,
-      "sha256": "84cf1bcad9af144f4d2c6c1db29d9aba869eb2cc76fdb6f592dd73bafdb76acb"
+      "size": 8688,
+      "sha256": "f4aa2c7a057744a544afdd0a2100b2bab437853e096343a8335c6013e4186315"
     },
     {
       "path": "src/app.manifest",
@@ -33,6 +33,21 @@
       "path": "src/app.ico",
       "size": 17053,
       "sha256": "518b3e46abfcace026cbc6275c19cd990ad987b8a92641250434b5fdcb4737fd"
+    },
+    {
+      "path": "src/Favorites.cs",
+      "size": 1562,
+      "sha256": "4089f79ead5664d5640b14960054ee512e5eb2e25aac11e2f1cc5f6e7e9874d9"
+    },
+    {
+      "path": "assets/set_representative_ids.json",
+      "size": 2195,
+      "sha256": "31826733db175359642daecc7ca173ffe33c952c7fa824acf93d89b7e4e430c5"
+    },
+    {
+      "path": "tools/export_split_data.py",
+      "size": 30130,
+      "sha256": "c53491c54346761a136fbc6b47557c352a9edb90a37becdf353bb2f5954d2ce8"
     }
   ]
 }

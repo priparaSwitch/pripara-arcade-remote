@@ -46,7 +46,9 @@ namespace PriParaCoordRemote {
     foreach(OutfitSet set in catalog.Data.sets)bridge.Validate(catalog.FromSet(set));
     Assert(catalog.Items[7106].sourceRow==1760&&catalog.Items[7307].sourceRow==1790&&catalog.Items[7412].sourceRow==1819,"Arcade row provenance mismatch");
     Assert(catalog.Data.sets.Any(s=>s.pieces["top"]==7106&&s.pieces["shoes"]==7307&&s.pieces["head"]==7412),"Twinkle set missing");
+   Assert(catalog.Data.items.Count(x=>x.hidden)==174&&catalog.Items[47000].hidden&&!catalog.Items[4446].hidden,"Audited set representatives were not filtered precisely");
    });
+   test("favorite keys persist outside the EXE and item database",()=>{string folder=Path.Combine(Path.GetTempPath(),"coord-favorites-test-"+Guid.NewGuid().ToString("N"));try{string file=Path.Combine(folder,"favorites.json");var a=new Favorites(file);a.Toggle("i7106");var b=new Favorites(file);Assert(b.Contains("i7106"),"Favorite did not persist");b.Toggle("i7106");Assert(!new Favorites(file).Contains("i7106"),"Favorite removal did not persist");}finally{if(Directory.Exists(folder))Directory.Delete(folder,true);}});
    test("optional external artwork never blocks outfit data",()=>{foreach(int id in new[]{7106,7307,7412}){var image=catalog.Art(id);if(!catalog.ImagesAvailable)Assert(image==null,"Artwork present without an image pack");if(image!=null)Assert(image.Width>0&&image.Height>0,"Invalid thumbnail "+id);}});
    test("invalid slot, empty outfit and dress plus skirt rejected",()=>{
     Rejected(()=>bridge.Validate(new Outfit()));Rejected(()=>bridge.Validate(new Outfit{top=7307}));

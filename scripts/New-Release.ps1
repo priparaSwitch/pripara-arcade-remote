@@ -1,7 +1,7 @@
-﻿param([string]$BuildDirectory='bin\Release',[string]$Tag='v1.1.2',[switch]$Force)
+﻿param([string]$BuildDirectory='bin\Release',[string]$Tag='v1.1.3',[switch]$Force)
 $ErrorActionPreference = 'Stop'
 $root = Split-Path -Parent $PSScriptRoot
-if ($Tag -ne 'v1.1.2') { throw 'The tag must match the current source version: v1.1.2.' }
+if ($Tag -ne 'v1.1.3') { throw 'The tag must match the current source version: v1.1.3.' }
 & (Join-Path $PSScriptRoot 'Verify-Repository.ps1') | Out-Null
 $build = if ([IO.Path]::IsPathRooted($BuildDirectory)) { [IO.Path]::GetFullPath($BuildDirectory) } else { Join-Path $root $BuildDirectory }
 $destination = Join-Path $root ('dist\release\'+$Tag)
@@ -9,7 +9,7 @@ New-Item -ItemType Directory -Force -Path $destination | Out-Null
 $exeName = '프리파라 코디 리모컨.exe'
 $files = @($exeName,'data.db','images.bin')
 $identity = [Reflection.AssemblyName]::GetAssemblyName((Join-Path $build $exeName))
-if ($identity.Version.ToString() -ne '1.1.2.0' -or $identity.ProcessorArchitecture.ToString() -ne 'Amd64') { throw 'The release requires the x64 1.1.2 managed application, not a game executable.' }
+if ($identity.Version.ToString() -ne '1.1.3.0' -or $identity.ProcessorArchitecture.ToString() -ne 'Amd64') { throw 'The release requires the x64 1.1.3 managed application, not a game executable.' }
 foreach ($name in $files) {
  $source = Join-Path $build $name
  if (-not (Test-Path -LiteralPath $source -PathType Leaf)) { throw ('Missing build input: '+$name) }
@@ -41,10 +41,12 @@ PriPara Arcade Remote $Tag
 
 Full: EXE + data.db + optional images.bin. Light: the same EXE + data.db.
 The three companion files must be beside one another. Images may be omitted.
-Version 1.1.2 shows its version in the window title and upper-right corner.
-Tabs: Sets, All, Hair accessories, Tops/dresses, Bottoms, Shoes.
-All searches individual items across the four slots, excluding sets.
-Existing data files and game-transfer behavior are unchanged.
+Version 1.1.3 shows its version in the window title and upper-right corner.
+Tabs: Favorites, Sets, All, Hair accessories, Tops/dresses, Bottoms, Shoes.
+The star on each card toggles a persistent favorite without selecting or sending the outfit.
+Sort by ID, name or grade, ascending or descending. Grade is available when supplied in data.db.
+All searches individual items across the four slots, excluding 174 audited set representatives.
+Game-transfer behavior is unchanged.
 Validation is offline fake-memory/Catalog/UI only, not a new in-game test.
 No game, camera driver/helper, save, log, dump or SQLite provider DLL is bundled.
 Individual files and full/light ZIPs are listed in SHA256SUMS.txt.
@@ -59,6 +61,6 @@ foreach ($name in $generated) {
  $metadata += [ordered]@{ name=$name; bytes=(Get-Item -LiteralPath $file).Length; sha256=$hash }
 }
 [IO.File]::WriteAllText((Join-Path $destination 'SHA256SUMS.txt'),($sums -join "`n")+"`n",(New-Object Text.UTF8Encoding($false)))
-$report = [ordered]@{ project='pripara-arcade-remote'; version='1.1.2.0'; tag=$Tag; files=$metadata; containsOriginalGame=$false; containsPrivateLogs=$false; newGameTest=$false; githubPublished=$false }
+$report = [ordered]@{ project='pripara-arcade-remote'; version='1.1.3.0'; tag=$Tag; files=$metadata; containsOriginalGame=$false; containsPrivateLogs=$false; newGameTest=$false; githubPublished=$false }
 $report | ConvertTo-Json -Depth 6 | Set-Content -LiteralPath (Join-Path $root 'dist\release-summary.json') -Encoding UTF8
 $report | ConvertTo-Json -Depth 6

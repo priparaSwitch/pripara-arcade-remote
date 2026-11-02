@@ -10,7 +10,7 @@ using System.Text;
 
 namespace PriParaCoordRemote {
  public sealed class OutfitItem {
-  public int id,brand,sourceRow;public string name,jpName,brandName,category,model,search;public bool isDress,thumbnail;
+  public int id,brand,sourceRow,grade;public string name,jpName,brandName,category,model,search;public bool isDress,thumbnail,hidden;
  }
  public sealed class OutfitSet {public string id,name,brandName,search;public int brand;public Dictionary<string,int> pieces;}
  public sealed class Bundle {public List<OutfitItem> items;public List<OutfitSet> sets;}
@@ -94,6 +94,16 @@ namespace PriParaCoordRemote {
      }
     }
     Require(data.items.Count>0,"의상 목록이 비어 있어요.");
+    // Optional companion metadata keeps the original DB format compatible.
+    if(db.Integer("SELECT COUNT(*) FROM sqlite_master WHERE type='table' AND name='item_meta';")>0){
+     using(SqliteRows rows=db.Query("SELECT id,grade,hidden FROM item_meta ORDER BY id;")){
+      while(rows.Step()){int id=rows.Integer(0,"item_meta.id");OutfitItem item;
+       Require(items.TryGetValue(id,out item),"의상 추가 정보의 ID가 목록에 없어요.");
+       item.grade=rows.Integer(1,"item_meta.grade");Require(item.grade>=0,"의상 등급 정보가 올바르지 않아요.");
+       item.hidden=rows.Boolean(2,"item_meta.hidden");
+      }
+     }
+    }
     HashSet<string> setIds=new HashSet<string>(StringComparer.Ordinal);
     using(SqliteRows rows=db.Query("SELECT id,name,brand,brandName,search,top,bottom,shoes,head FROM sets ORDER BY name,id;")){
      while(rows.Step()){

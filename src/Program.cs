@@ -13,7 +13,7 @@ using System.Security.Principal;
 
 [assembly:AssemblyTitle("프리파라 코디 리모컨")]
 [assembly:AssemblyProduct("PriPara Coordinate Remote")]
-[assembly:AssemblyVersion("1.1.2.0")]
+[assembly:AssemblyVersion("1.1.3.0")]
 namespace PriParaCoordRemote {
  public static class AppInfo {
   public const string Name="프리파라 코디 리모컨";
@@ -33,21 +33,24 @@ namespace PriParaCoordRemote {
   }
   public static Button Button(string text,bool primary){return new Button{Text=text,FlatStyle=FlatStyle.Flat,BackColor=primary?Blue:Color.White,ForeColor=primary?Color.White:Ink,Font=Font(10,FontStyle.Bold),Cursor=Cursors.Hand,Height=36,AutoSize=false,TabStop=true};}
  }
- public sealed class Entry {public OutfitItem Item;public OutfitSet Set;public string Key{get{return Item!=null?"i"+Item.id:"s"+Set.id;}}public string Name{get{return Item!=null?Item.name:Set.name;}}public string Brand{get{return Item!=null?Item.brandName:Set.brandName;}}}
+ public sealed class Entry {public OutfitItem Item;public OutfitSet Set;public string Key{get{return Item!=null?"i"+Item.id:"s"+Set.id;}}public string Name{get{return Item!=null?Item.name:Set.name;}}public string Brand{get{return Item!=null?Item.brandName:Set.brandName;}}public int Id{get{int value;if(Item!=null)return Item.id;string[] parts=Set.id.Split('-');return Int32.TryParse(parts[parts.Length-1],out value)?value:Int32.MaxValue;}}public int Grade{get{return Item!=null?Item.grade:0;}}}
  public sealed class Gallery:Control {
-  readonly Catalog catalog;List<Entry> rows=new List<Entry>();public int Page;public string SelectedKey="";
-  public event Action<Entry> Chosen;public event Action PagingChanged;int hover=-1;ToolTip tip=new ToolTip();
-  public Gallery(Catalog c){catalog=c;DoubleBuffered=true;BackColor=Theme.Back;SetStyle(ControlStyles.ResizeRedraw,true);Cursor=Cursors.Hand;TabStop=true;}
+  readonly Catalog catalog;readonly Favorites favorites;List<Entry> rows=new List<Entry>();public int Page;public string SelectedKey="";
+  public event Action<Entry> Chosen;public event Action PagingChanged;public event Action FavoritesChanged;int hover=-1;ToolTip tip=new ToolTip();
+  public Gallery(Catalog c,Favorites f){catalog=c;favorites=f;DoubleBuffered=true;BackColor=Theme.Back;SetStyle(ControlStyles.ResizeRedraw,true);Cursor=Cursors.Hand;TabStop=true;}
   public int Columns{get{return Math.Max(1,ClientSize.Width/Theme.Px(166));}}
   public int VisibleRows{get{return Math.Max(1,ClientSize.Height/Theme.Px(184));}}
   public int PageSize{get{return Columns*VisibleRows;}}
   public int Pages{get{return Math.Max(1,(rows.Count+PageSize-1)/PageSize);}}
   public int Count{get{return rows.Count;}}
+  public string FirstKey{get{return rows.Count==0?"":rows[0].Key;}}
+  public void ClickFirstStarForTest(){if(rows.Count==0)throw new Exception("No item card to test");Rectangle r=Star(0);OnMouseDown(new MouseEventArgs(MouseButtons.Left,1,r.X+r.Width/2,r.Y+r.Height/2,0));}
   public void SetRows(List<Entry> list){rows=list;Page=0;hover=-1;Notify();Invalidate();}
   public void MovePage(int delta){Page=Math.Max(0,Math.Min(Pages-1,Page+delta));Notify();Invalidate();}
   void Notify(){if(PagingChanged!=null)PagingChanged();}
   protected override void OnResize(EventArgs e){base.OnResize(e);Page=Math.Min(Page,Pages-1);Notify();}
   Rectangle Card(int i){int w=ClientSize.Width/Columns;return new Rectangle((i%Columns)*w+Theme.Px(6),(i/Columns)*Theme.Px(184)+Theme.Px(6),w-Theme.Px(12),Theme.Px(172));}
+  Rectangle Star(int i){Rectangle r=Card(i);return new Rectangle(r.Right-Theme.Px(37),r.Y+Theme.Px(4),Theme.Px(33),Theme.Px(33));}
   protected override void OnPaint(PaintEventArgs e){
    base.OnPaint(e);Graphics g=e.Graphics;g.Clear(BackColor);g.SmoothingMode=SmoothingMode.AntiAlias;
    using(Font name=Theme.Font(9.3f,FontStyle.Bold))using(Font small=Theme.Font(8.2f,FontStyle.Regular)){
@@ -63,6 +66,8 @@ namespace PriParaCoordRemote {
       int cw=Math.Min(Theme.Px(66),(r.Width-Theme.Px(20))/2),left=r.X+(r.Width-2*cw)/2;
       for(int k=0;k<4;k++)if(ids[k]!=0)Theme.ImageFit(g,catalog.Art(ids[k]),new Rectangle(left+(k%2)*cw,r.Y+Theme.Px(6+(k/2)*51),cw,Theme.Px(50)));
      }
+     using(Brush starBack=new SolidBrush(Color.FromArgb(235,255,255,255)))g.FillRectangle(starBack,Star(i));
+     Theme.Text(g,favorites.Contains(entry.Key)?"★":"☆",name,favorites.Contains(entry.Key)?Color.FromArgb(222,137,52):Theme.Muted,Star(i),TextFormatFlags.HorizontalCenter|TextFormatFlags.VerticalCenter);
      Theme.Text(g,entry.Name,name,Theme.Ink,new Rectangle(r.X+Theme.Px(10),r.Y+Theme.Px(110),r.Width-Theme.Px(20),Theme.Px(39)),TextFormatFlags.WordBreak|TextFormatFlags.EndEllipsis);
      Theme.Text(g,entry.Brand,small,Theme.Muted,new Rectangle(r.X+Theme.Px(10),r.Y+Theme.Px(151),r.Width-Theme.Px(20),Theme.Px(17)),TextFormatFlags.SingleLine|TextFormatFlags.EndEllipsis);
     }
@@ -71,7 +76,7 @@ namespace PriParaCoordRemote {
   int Hit(Point p){for(int i=0;i<PageSize&&Page*PageSize+i<rows.Count;i++)if(Card(i).Contains(p))return i;return -1;}
   protected override void OnMouseMove(MouseEventArgs e){base.OnMouseMove(e);int h=Hit(e.Location);if(h!=hover){hover=h;tip.SetToolTip(this,h<0?"":rows[Page*PageSize+h].Name);Invalidate();}}
   protected override void OnMouseLeave(EventArgs e){base.OnMouseLeave(e);hover=-1;Invalidate();}
-  protected override void OnMouseDown(MouseEventArgs e){base.OnMouseDown(e);int i=Hit(e.Location);if(i>=0&&e.Button==MouseButtons.Left){Entry row=rows[Page*PageSize+i];SelectedKey=row.Key;Invalidate();if(Chosen!=null)Chosen(row);}}
+  protected override void OnMouseDown(MouseEventArgs e){base.OnMouseDown(e);int i=Hit(e.Location);if(i>=0&&e.Button==MouseButtons.Left){Entry row=rows[Page*PageSize+i];if(Star(i).Contains(e.Location)){favorites.Toggle(row.Key);Invalidate();if(FavoritesChanged!=null)FavoritesChanged();return;}SelectedKey=row.Key;Invalidate();if(Chosen!=null)Chosen(row);}}
   protected override void OnMouseWheel(MouseEventArgs e){base.OnMouseWheel(e);MovePage(e.Delta<0?1:-1);}
  }
  public sealed class SelectionView:Control {
@@ -96,15 +101,15 @@ namespace PriParaCoordRemote {
   protected override void OnMouseDown(MouseEventArgs e){base.OnMouseDown(e);int h=Math.Max(1,Height/4),i=e.Y/h;if(i>=0&&i<4&&e.X>Width-Theme.Px(36)&&e.Y%h<Theme.Px(32)&&ClearSlot!=null)ClearSlot(slots[i]);}
  }
  public sealed class MainForm:Form {
-  readonly Catalog catalog;readonly GameBridge bridge;readonly Gallery gallery;readonly SelectionView selection;readonly bool testMode;
-  Outfit outfit=new Outfit();string category="sets";bool busy,refreshing;GameStatus game=new GameStatus{Message="게임 연결 확인 중…"};
-  Label badge,versionLabel,status,pageLabel,resultCount;TextBox search;ComboBox brand;CheckBox autoSend,autoSet;Button send,prev,next;
+  readonly Catalog catalog;readonly GameBridge bridge;readonly Gallery gallery;readonly SelectionView selection;readonly Favorites favorites;readonly bool testMode;
+  Outfit outfit=new Outfit();string category="sets";bool busy,refreshing,ascending=true;GameStatus game=new GameStatus{Message="게임 연결 확인 중…"};
+  Label badge,versionLabel,status,pageLabel,resultCount;TextBox search;ComboBox brand,sort;CheckBox autoSend,autoSet;Button send,prev,next,direction;
   System.Windows.Forms.Timer poll=new System.Windows.Forms.Timer(),debounce=new System.Windows.Forms.Timer(),findDelay=new System.Windows.Forms.Timer();
   readonly Dictionary<string,Button> tabs=new Dictionary<string,Button>();
   public MainForm(Catalog c,bool testMode=false){
    this.testMode=testMode;
    SuspendLayout();AutoScaleDimensions=new SizeF(96,96);AutoScaleMode=AutoScaleMode.Dpi;
-   catalog=c;bridge=new GameBridge(c.Items);Text=AppInfo.WindowTitle;StartPosition=FormStartPosition.CenterScreen;Size=new Size(1220,850);MinimumSize=new Size(1060,780);BackColor=Theme.Back;Font=Theme.Font(9,FontStyle.Regular);
+   catalog=c;favorites=new Favorites(testMode?Path.Combine(Path.GetTempPath(),"PriParaCoordRemote-ui-test-"+Guid.NewGuid().ToString("N"),"favorites.json"):Favorites.DefaultPath());bridge=new GameBridge(c.Items);Text=AppInfo.WindowTitle;StartPosition=FormStartPosition.CenterScreen;Size=new Size(1220,850);MinimumSize=new Size(1130,780);BackColor=Theme.Back;Font=Theme.Font(9,FontStyle.Regular);
    try{Icon=new Icon(Assembly.GetExecutingAssembly().GetManifestResourceStream("app.ico"));}catch{}
    Panel header=new Panel{Dock=DockStyle.Top,Height=94,BackColor=Color.White};Controls.Add(header);
    Label title=new Label{Text=AppInfo.Name,Font=Theme.Font(20,FontStyle.Bold),ForeColor=Theme.Ink,Location=new Point(25,15),AutoSize=true};header.Controls.Add(title);
@@ -131,25 +136,29 @@ namespace PriParaCoordRemote {
    Control[] leftRows={selectedTitle,selection,autoSend,autoSet,send,hint};for(int i=0;i<leftRows.Length;i++){Control control=leftRows[i];control.Dock=DockStyle.Fill;control.Margin=new Padding(3);if(control is CheckBox)((CheckBox)control).AutoSize=false;leftGrid.Controls.Add(control,0,i);}left.Controls.Add(leftGrid);
    Panel center=new Panel{Dock=DockStyle.Fill,Padding=new Padding(18,0,0,0)};body.Controls.Add(center);center.BringToFront();
    FlowLayoutPanel tabLine=new FlowLayoutPanel{Dock=DockStyle.Top,Height=46,WrapContents=false,Padding=new Padding(0)};center.Controls.Add(tabLine);
-   string[] keys={"sets","all","head","top","bottom","shoes"},labels={"의상세트","전체","헤어 액세서리","상의 원피스","하의","슈즈"};
-   int[] widths={90,64,122,118,70,70};
+   string[] keys={"favorites","sets","all","head","top","bottom","shoes"},labels={"★ 즐겨찾기","의상세트","전체","헤어 액세서리","상의 원피스","하의","슈즈"};
+   int[] widths={102,88,54,112,108,58,58};
    for(int i=0;i<keys.Length;i++){string key=keys[i];Button b=Theme.Button(labels[i],false);b.Name="tab_"+key;b.Width=widths[i];b.Margin=new Padding(0,0,7,0);tabs[key]=b;tabLine.Controls.Add(b);b.Click+=(s,e)=>{category=key;StyleTabs();Filter();};}
    Panel filters=new Panel{Dock=DockStyle.Top,Height=54};center.Controls.Add(filters);filters.BringToFront();tabLine.BringToFront();
-   search=new TextBox{Location=new Point(1,9),Width=350,Font=Theme.Font(11,FontStyle.Regular)};filters.Controls.Add(search);
-   brand=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(365,8),Width=190,Font=Theme.Font(10,FontStyle.Regular)};filters.Controls.Add(brand);brand.Items.Add("모든 브랜드");
+   search=new TextBox{Location=new Point(1,9),Width=220,Font=Theme.Font(11,FontStyle.Regular)};filters.Controls.Add(search);
+   brand=new ComboBox{DropDownStyle=ComboBoxStyle.DropDownList,Location=new Point(230,8),Width=145,Font=Theme.Font(10,FontStyle.Regular)};filters.Controls.Add(brand);brand.Items.Add("모든 브랜드");
    foreach(string b in catalog.Data.items.Select(x=>x.brandName).Where(x=>!String.IsNullOrWhiteSpace(x)).Distinct().OrderBy(x=>x))brand.Items.Add(b);brand.SelectedIndex=0;
-   resultCount=new Label{Text="",ForeColor=Theme.Muted,AutoSize=true,Location=new Point(568,15)};filters.Controls.Add(resultCount);
+   resultCount=new Label{Text="",ForeColor=Theme.Muted,AutoSize=true,Location=new Point(385,15)};filters.Controls.Add(resultCount);
+   sort=new ComboBox{Name="sortOrder",DropDownStyle=ComboBoxStyle.DropDownList,Width=111,Font=Theme.Font(9,FontStyle.Regular)};sort.Items.AddRange(new object[]{"ID순서","이름순서","등급순서"});sort.SelectedIndex=0;filters.Controls.Add(sort);
+   direction=Theme.Button("↑",false);direction.Name="sortDirection";direction.Width=34;direction.Height=30;filters.Controls.Add(direction);
+   Action positionSort=()=>{direction.Location=new Point(Math.Max(430,filters.ClientSize.Width-direction.Width),7);sort.Location=new Point(direction.Left-sort.Width-6,8);};filters.Resize+=(s,e)=>positionSort();positionSort();
+   sort.SelectedIndexChanged+=(s,e)=>Filter();direction.Click+=(s,e)=>ToggleSortDirection();
    Panel paging=new Panel{Dock=DockStyle.Bottom,Height=43};center.Controls.Add(paging);
    prev=Theme.Button("이전",false);prev.Width=76;prev.Location=new Point(0,5);paging.Controls.Add(prev);
    pageLabel=new Label{AutoSize=false,Font=Theme.Font(9,FontStyle.Regular),TextAlign=ContentAlignment.MiddleCenter,Width=160,Height=36,Location=new Point(80,5),ForeColor=Theme.Muted};paging.Controls.Add(pageLabel);
    next=Theme.Button("다음",false);next.Width=76;next.Location=new Point(246,5);paging.Controls.Add(next);
-   gallery=new Gallery(c){Dock=DockStyle.Fill};center.Controls.Add(gallery);gallery.BringToFront();paging.BringToFront();filters.BringToFront();tabLine.BringToFront();
+   gallery=new Gallery(c,favorites){Dock=DockStyle.Fill};center.Controls.Add(gallery);gallery.BringToFront();paging.BringToFront();filters.BringToFront();tabLine.BringToFront();
    center.Controls.Clear();TableLayoutPanel centerLayout=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=1,RowCount=4,Margin=new Padding(0),Padding=new Padding(0)};
    centerLayout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));centerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,46));centerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,54));centerLayout.RowStyles.Add(new RowStyle(SizeType.Percent,100));centerLayout.RowStyles.Add(new RowStyle(SizeType.Absolute,43));
    foreach(Control control in new Control[]{tabLine,filters,gallery,paging}){control.Dock=DockStyle.Fill;control.Margin=new Padding(0);}centerLayout.Controls.Add(tabLine,0,0);centerLayout.Controls.Add(filters,0,1);centerLayout.Controls.Add(gallery,0,2);centerLayout.Controls.Add(paging,0,3);center.Controls.Add(centerLayout);
    body.Controls.Clear();TableLayoutPanel columns=new TableLayoutPanel{Dock=DockStyle.Fill,ColumnCount=2,RowCount=1,Margin=new Padding(0)};columns.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute,290));columns.ColumnStyles.Add(new ColumnStyle(SizeType.Percent,100));columns.RowStyles.Add(new RowStyle(SizeType.Percent,100));left.Dock=DockStyle.Fill;center.Dock=DockStyle.Fill;left.Margin=new Padding(0);center.Margin=new Padding(0);columns.Controls.Add(left,0,0);columns.Controls.Add(center,1,0);body.Controls.Add(columns);
    gallery.PagingChanged+=UpdatePaging;prev.Click+=(s,e)=>gallery.MovePage(-1);next.Click+=(s,e)=>gallery.MovePage(1);
-   gallery.Chosen+=Choose;selection.ClearSlot+=Clear;send.Click+=async(s,e)=>await SendNow();
+   gallery.Chosen+=Choose;gallery.FavoritesChanged+=()=>{if(category=="favorites")Filter();};selection.ClearSlot+=Clear;send.Click+=async(s,e)=>await SendNow();
    findDelay.Interval=170;findDelay.Tick+=(s,e)=>{findDelay.Stop();Filter();};search.TextChanged+=(s,e)=>{findDelay.Stop();findDelay.Start();};brand.SelectedIndexChanged+=(s,e)=>Filter();
    debounce.Interval=320;debounce.Tick+=async(s,e)=>{debounce.Stop();if(autoSend.Checked)await SendNow();};
    autoSend.CheckedChanged+=(s,e)=>{if(!autoSend.Checked)debounce.Stop();};
@@ -158,11 +167,17 @@ namespace PriParaCoordRemote {
    ResumeLayout(true);StyleTabs();Filter();UpdateSelection();
   }
   void StyleTabs(){foreach(var pair in tabs){bool on=pair.Key==category;pair.Value.BackColor=on?Theme.Blue:Color.White;pair.Value.ForeColor=on?Color.White:Theme.Ink;}}
+  void ToggleSortDirection(){ascending=!ascending;direction.Text=ascending?"↑":"↓";Filter();}
   bool Matches(string text,string q){return String.IsNullOrWhiteSpace(q)||(text??"").IndexOf(q,StringComparison.OrdinalIgnoreCase)>=0;}
   public void Filter(){
    if(gallery==null||search==null||brand==null)return;string q=search.Text.Trim();string b=brand.SelectedIndex<=0?"":brand.Text;
-   List<Entry> result=category=="sets"?catalog.Data.sets.Where(x=>Matches(x.search,q)&&(b==""||x.brandName==b)).Select(x=>new Entry{Set=x}).ToList():catalog.Data.items.Where(x=>(category=="all"||x.category==category)&&Matches(x.search,q)&&(b==""||x.brandName==b)).Select(x=>new Entry{Item=x}).ToList();
+   IEnumerable<Entry> source=category=="sets"?catalog.Data.sets.Select(x=>new Entry{Set=x}):category=="favorites"?catalog.Data.sets.Select(x=>new Entry{Set=x}).Concat(catalog.Data.items.Where(x=>!x.hidden).Select(x=>new Entry{Item=x})).Where(x=>favorites.Contains(x.Key)):catalog.Data.items.Where(x=>!x.hidden&&(category=="all"||x.category==category)).Select(x=>new Entry{Item=x});
+   List<Entry> result=source.Where(x=>Matches(x.Item!=null?x.Item.search:x.Set.search,q)&&(b==""||x.Brand==b)).ToList();
+   if(sort.SelectedIndex==1)result=ascending?result.OrderBy(x=>x.Name,StringComparer.CurrentCulture).ThenBy(x=>x.Id).ToList():result.OrderByDescending(x=>x.Name,StringComparer.CurrentCulture).ThenByDescending(x=>x.Id).ToList();
+   else if(sort.SelectedIndex==2)result=ascending?result.OrderBy(x=>x.Grade).ThenBy(x=>x.Id).ToList():result.OrderByDescending(x=>x.Grade).ThenByDescending(x=>x.Id).ToList();
+   else result=ascending?result.OrderBy(x=>x.Id).ThenBy(x=>x.Key,StringComparer.Ordinal).ToList():result.OrderByDescending(x=>x.Id).ThenByDescending(x=>x.Key,StringComparer.Ordinal).ToList();
    gallery.SetRows(result);resultCount.Text=result.Count.ToString("N0")+"개";
+   if(sort.SelectedIndex==2&&result.Count>0&&result.All(x=>x.Grade==0))SetStatus("현재 DB에 등급 정보가 없어 ID순서로 표시해요.",false);
   }
   void UpdatePaging(){if(pageLabel==null||gallery==null)return;pageLabel.Text=(gallery.Page+1)+" / "+gallery.Pages+" 페이지";prev.Enabled=gallery.Page>0;next.Enabled=gallery.Page+1<gallery.Pages;}
   public void Choose(Entry entry){
@@ -206,13 +221,13 @@ namespace PriParaCoordRemote {
   public void CheckInterface(){
    autoSend.Checked=false;autoSet.Checked=false;CreateControl();PerformLayout();
    if(Text!=AppInfo.WindowTitle||versionLabel.Text!=AppInfo.Version)throw new Exception("Displayed application version mismatch");
-   string[] tabOrder={"sets","all","head","top","bottom","shoes"};
+   string[] tabOrder={"favorites","sets","all","head","top","bottom","shoes"};
    if(!tabs["sets"].Parent.Controls.Cast<Control>().Select(x=>x.Name).SequenceEqual(tabOrder.Select(x=>"tab_"+x)))throw new Exception("Category tab order changed");
-   category="all";search.Text="";Filter();if(gallery.Count!=catalog.Data.items.Count)throw new Exception("All items must exclude sets and include every item");
+   category="all";search.Text="";Filter();if(gallery.Count!=catalog.Data.items.Count(x=>!x.hidden))throw new Exception("All items must hide set representatives");
    search.Text="트윙클리본";Filter();int allTwinkle=gallery.Count,bySlot=0;
    foreach(string slot in new[]{"head","top","bottom","shoes"}){category=slot;Filter();bySlot+=gallery.Count;}
    if(allTwinkle<1||allTwinkle!=bySlot)throw new Exception("All-category Korean search failed");
-   category="all";search.Text="";brand.SelectedIndex=1;Filter();if(gallery.Count!=catalog.Data.items.Count(x=>x.brandName==brand.Text))throw new Exception("All-category brand filtering failed");
+   category="all";search.Text="";brand.SelectedIndex=1;Filter();if(gallery.Count!=catalog.Data.items.Count(x=>!x.hidden&&x.brandName==brand.Text))throw new Exception("All-category brand filtering failed");
    brand.SelectedIndex=0;category="sets";
    search.Text="트윙클리본";Filter();if(gallery.Count<1)throw new Exception("Korean search failed");
    Choose(new Entry{Set=catalog.Data.sets.First(x=>x.pieces["top"]==7106&&x.pieces["shoes"]==7307&&x.pieces["head"]==7412)});
@@ -223,6 +238,10 @@ namespace PriParaCoordRemote {
    category="top";search.Text="1501_D01";Filter();if(gallery.Count<1)throw new Exception("Model search failed");
    search.Text="";Filter();if(gallery.Count<100||gallery.Pages<2)throw new Exception("Paging unavailable");gallery.MovePage(1);if(gallery.Page!=1)throw new Exception("Next page failed");
    category="sets";search.Text="no_such_coordinate_999999";Filter();if(gallery.Count!=0||gallery.Page!=0)throw new Exception("Empty search failed");
+   search.Text="";category="all";Filter();string first=gallery.FirstKey;int top=outfit.top;gallery.ClickFirstStarForTest();if(!favorites.Contains(first)||outfit.top!=top||debounce.Enabled)throw new Exception("Star click must only change favorites");
+   category="favorites";Filter();if(gallery.Count!=1||gallery.FirstKey!=first)throw new Exception("Favorite tab failed");
+   sort.SelectedIndex=1;Filter();ToggleSortDirection();if(direction.Text!="↓")throw new Exception("Sort direction toggle failed");
+   gallery.ClickFirstStarForTest();if(gallery.Count!=0||favorites.Contains(first))throw new Exception("Favorite removal failed");
    if(debounce.Enabled)throw new Exception("UI test unexpectedly scheduled a send");
   }
  }

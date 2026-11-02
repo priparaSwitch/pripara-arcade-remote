@@ -11,8 +11,11 @@ SQLite3 DB이며 `application_id=0x50435231`, `user_version=1`입니다.
 | `meta(key TEXT PRIMARY KEY,value TEXT)` | `schema_version=1`, 자유 문자열 `data_version`, 실제 행 수 `item_count/set_count`, 진단용 `image_count` |
 | `items` | `id` INTEGER PK, `name/jpName` TEXT, `brand` INTEGER, `brandName/category/model` TEXT, `isDress/sourceRow/thumbnail` INTEGER, `search` TEXT, 선택 출처 `nameSource` TEXT |
 | `sets` | `id` TEXT PK, `name/brandName/search` TEXT, `brand/top/bottom/shoes/head` INTEGER |
+| `item_meta` (선택) | `id` INTEGER PK, `grade` INTEGER(0=미상), `hidden` INTEGER(0/1). 세트 대표 상의를 목록에서 숨기고 실제 등급 정렬값을 제공할 수 있습니다. |
 
 카테고리는 `top/bottom/shoes/head`, 불리언은0/1입니다. 빈 세트 부위는0입니다. 아이템·부위·세트 참조와 원피스/하의 배제 규칙을 확인합니다. 필수 열·타입을 유지하면 추가 열·추가 meta를 넣을 수 있습니다. 앱은 데이터 버전·행 수·전체 해시를 고정하지 않습니다.
+
+현재 배포 DB는 NS 카탈로그에서 확인한 세트 대표 ID 174개를 `hidden=1`로 지정합니다. 이름에 ‘세트’가 포함된 일반 상의는 숨기지 않습니다. 현재 자료에는 실제 등급값이 없어 `grade=0`이며 등급 정렬은 ID순서로 표시됩니다. 새 DB가 실제 등급값을 넣으면 EXE를 바꾸지 않아도 됩니다. 즐겨찾기 목록은 사용자별 로컬 설정에 저장되며 DB에는 기록하지 않습니다.
 
 `sourceRow`는 전송할 때의 빠른 조회 힌트입니다. 게임 표에서 실제 ID·부위도 다시 확인하며 행이 바뀌면 ID로 재검색합니다. DB에만 새 아이템을 적는다고 게임에 모델이 생기는 것은 아닙니다. 기존 아케이드에 존재하는 아이템만 사용하세요.
 
